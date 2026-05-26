@@ -21,6 +21,7 @@ test("creates, joins, votes, reveals, and celebrates consensus", async ({ browse
 
   await expect(hostPage.getByText("Consensus: 5")).toBeVisible();
   await expect(hostPage.locator("#session-room")).toHaveAttribute("data-consensus", "true");
+  await expect(hostPage.locator(".confetti-burst")).toBeVisible();
 
   await host.close();
   await guest.close();

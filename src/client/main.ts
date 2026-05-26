@@ -2,6 +2,8 @@ import "htmx.org";
 import "@macavitymadcap/hyper-dank-ui/styles.css";
 import "./styles.css";
 
+let celebratedRoundKey: string | null = null;
+
 const copyShareLink = async (button: HTMLButtonElement) => {
   const targetId = button.dataset.copyTarget;
   if (!targetId) return;
@@ -18,8 +20,11 @@ const copyShareLink = async (button: HTMLButtonElement) => {
 
 const celebrateIfNeeded = (root: ParentNode = document) => {
   const room = root.querySelector<HTMLElement>("#session-room[data-consensus='true']");
-  if (!room || room.dataset.celebrated === "true") return;
-  room.dataset.celebrated = "true";
+  if (!room) return;
+
+  const roundKey = `${room.dataset.sessionCode ?? "session"}:${room.dataset.round ?? "round"}`;
+  if (celebratedRoundKey === roundKey) return;
+  celebratedRoundKey = roundKey;
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     room.classList.add("consensus-still");
@@ -50,7 +55,7 @@ const connectSessionEvents = () => {
     const room = document.getElementById("session-room");
     if (!room) return;
     room.outerHTML = (event as MessageEvent<string>).data;
-    celebrateIfNeeded();
+    window.requestAnimationFrame(() => celebrateIfNeeded());
   });
 };
 
@@ -59,7 +64,9 @@ document.addEventListener("click", (event) => {
   if (button) void copyShareLink(button);
 });
 
-document.body.addEventListener("htmx:afterSwap", () => celebrateIfNeeded());
+document.body.addEventListener("htmx:afterSwap", () => {
+  window.requestAnimationFrame(() => celebrateIfNeeded());
+});
 
 connectSessionEvents();
 celebrateIfNeeded();

@@ -44,6 +44,7 @@ export const RoomFragment = ({ baseUrl, currentParticipant, state }: RoomProps) 
       className="room-grid"
       data-consensus={consensus ? "true" : "false"}
       data-round={state.session.currentRound}
+      data-session-code={state.session.code}
     >
       <Card as="section" className="room-main">
         <div className="room-header">
