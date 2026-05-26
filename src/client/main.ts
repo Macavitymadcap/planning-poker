@@ -68,14 +68,19 @@ const connectThemeToggle = () => {
   });
 };
 
-const copyShareLink = async (button: HTMLButtonElement) => {
-  const targetId = button.dataset.copyTarget;
+const copyShareLink = async (copyAction: HTMLElement) => {
+  const targetId = copyAction.dataset.copyTarget;
   if (!targetId) return;
 
   const input = document.getElementById(targetId);
   if (!(input instanceof HTMLInputElement)) return;
 
   await navigator.clipboard.writeText(input.value);
+  const button = copyAction.matches(".button")
+    ? copyAction
+    : copyAction.querySelector<HTMLElement>(".button");
+  if (!button) return;
+
   button.textContent = "Copied";
   setTimeout(() => {
     button.textContent = "Copy";
@@ -124,8 +129,8 @@ const connectSessionEvents = () => {
 };
 
 document.addEventListener("click", (event) => {
-  const button = (event.target as Element | null)?.closest<HTMLButtonElement>("[data-copy-target]");
-  if (button) void copyShareLink(button);
+  const copyAction = (event.target as Element | null)?.closest<HTMLElement>("[data-copy-target]");
+  if (copyAction) void copyShareLink(copyAction);
 });
 
 document.body.addEventListener("htmx:afterSwap", () => {
