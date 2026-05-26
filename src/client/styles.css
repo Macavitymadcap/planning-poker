@@ -70,6 +70,26 @@ input {
   text-transform: uppercase;
 }
 
+.site-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.site-footer a {
+  color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--accent-strong);
+}
+
 .theme-toggle {
   position: relative;
   display: inline-flex;
