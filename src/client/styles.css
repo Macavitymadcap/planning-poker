@@ -70,81 +70,141 @@ input {
   text-transform: uppercase;
 }
 
-.app-toolbar .switch {
-  --switch-track-bg: color-mix(in srgb, var(--surface-raised) 84%, var(--surface-soft));
-  --switch-track-checked-bg: color-mix(in srgb, var(--accent) 34%, var(--surface-raised));
-  --switch-thumb-bg: var(--surface-raised);
+.theme-toggle {
   position: relative;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line-soft);
-  border-radius: 999px;
-  padding: 8px 10px;
-  background: color-mix(in srgb, var(--surface-raised) 74%, transparent);
-  box-shadow: var(--shadow-card);
+  gap: 8px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
 }
 
-.app-toolbar .switch-label {
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 800;
-}
-
-.app-toolbar .switch-input {
+.theme-toggle__label {
   position: absolute;
-  right: 10px;
-  width: 46px;
-  height: 26px;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  padding: 0;
+  white-space: nowrap;
+}
+
+.theme-toggle__input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
   margin: 0;
   cursor: pointer;
   opacity: 0;
-  z-index: 1;
 }
 
-.app-toolbar .switch-track {
+.theme-toggle__track {
   position: relative;
-  display: inline-flex;
-  width: 46px;
-  height: 26px;
-  flex: none;
-  border: 1px solid var(--line-soft);
+  display: grid;
+  width: 60px;
+  height: 32px;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--line-soft) 84%, transparent);
   border-radius: 999px;
-  background: var(--switch-track-bg);
-  box-shadow: inset 0 1px 2px color-mix(in srgb, #0f172a 14%, transparent);
+  background-image: linear-gradient(110deg, #e2e8f0 0%, #bae6fd 34%, #3b82f6 66%, #1e1b4b 100%);
+  background-position: 0% 50%;
+  background-size: 260% 100%;
+  box-shadow:
+    inset 0 1px 2px color-mix(in srgb, #0f172a 18%, transparent),
+    0 10px 24px color-mix(in srgb, var(--accent) 18%, transparent);
+  color: #0f172a;
+  padding: 3px;
   transition:
-    background 160ms ease,
-    border-color 160ms ease;
+    background-position 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    color 0ms linear;
 }
 
-.app-toolbar .switch-thumb {
+.theme-toggle__track::before {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
+  inset: 0;
+  background-image: linear-gradient(110deg, #f8fafc, #cffafe, #2563eb, #111827);
+  background-position: 0% 50%;
+  background-size: 260% 100%;
+  content: "";
+  opacity: 0.48;
+  transition:
+    background-position 220ms ease,
+    opacity 220ms ease;
+}
+
+.theme-toggle__thumb {
+  position: absolute;
+  inset-block: 3px;
+  inset-inline-start: 3px;
+  z-index: 0;
+  width: 24px;
   border-radius: 999px;
-  background: var(--switch-thumb-bg);
-  box-shadow: 0 3px 8px color-mix(in srgb, #0f172a 24%, transparent);
-  transition: transform 160ms ease;
+  background-image: linear-gradient(135deg, #ffffff 0%, #e0f2fe 38%, #bfdbfe 68%, #111827 100%);
+  background-position: 0% 50%;
+  background-size: 280% 100%;
+  box-shadow: 0 4px 12px color-mix(in srgb, #0f172a 26%, transparent);
+  transition:
+    background-position 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
 }
 
-.app-toolbar .switch-input:checked + .switch-track {
-  border-color: color-mix(in srgb, var(--accent) 48%, var(--line-soft));
-  background: var(--switch-track-checked-bg);
+.theme-toggle__icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  font-size: 0.92rem;
+  line-height: 1;
 }
 
-.app-toolbar .switch-input:checked + .switch-track .switch-thumb {
-  transform: translateX(20px);
+.theme-toggle__icon--dark {
+  color: #1e3a8a;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 45%);
 }
 
-.app-toolbar .switch:focus-within {
-  outline: 2px solid color-mix(in srgb, var(--accent) 54%, transparent);
+.theme-toggle__input:checked + .theme-toggle__track,
+:root[data-theme="dark"] .theme-toggle__track {
+  border-color: color-mix(in srgb, var(--accent-strong) 58%, var(--line-soft));
+  background-position: 100% 50%;
+  box-shadow:
+    inset 0 1px 2px color-mix(in srgb, #020617 32%, transparent),
+    0 12px 28px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.theme-toggle__input:checked + .theme-toggle__track::before,
+:root[data-theme="dark"] .theme-toggle__track::before {
+  background-position: 100% 50%;
+  opacity: 0.72;
+}
+
+.theme-toggle__input:checked + .theme-toggle__track .theme-toggle__icon--dark,
+:root[data-theme="dark"] .theme-toggle__icon--dark {
+  color: #e0f2fe;
+  text-shadow: 0 1px 0 rgb(15 23 42 / 45%);
+}
+
+.theme-toggle__input:checked + .theme-toggle__track .theme-toggle__thumb,
+:root[data-theme="dark"] .theme-toggle__thumb {
+  background-position: 100% 50%;
+  transform: translateX(28px);
+}
+
+.theme-toggle__input:focus-visible + .theme-toggle__track {
+  outline: 2px solid color-mix(in srgb, var(--accent) 62%, transparent);
   outline-offset: 3px;
-}
-
-.app-toolbar .material-symbols-outlined {
-  display: none;
 }
 
 .home-shell {
