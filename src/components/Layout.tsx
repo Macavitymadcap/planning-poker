@@ -1,4 +1,3 @@
-import { Switch } from "@macavitymadcap/hyper-dank-ui";
 import { raw } from "hono/html";
 
 const themeBootstrap = /* js */ `
@@ -45,7 +44,23 @@ export const Layout = ({ children, title = "Planning Poker" }: LayoutProps) => (
           <a className="brand-mark" href="/">
             Planning Poker
           </a>
-          <Switch id="theme-toggle" label="Colour mode" dataThemeToggle variant="compact" />
+          <label className="theme-toggle" htmlFor="theme-toggle">
+            <span className="theme-toggle__label">Colour mode</span>
+            <input
+              id="theme-toggle"
+              className="theme-toggle__input"
+              type="checkbox"
+              role="switch"
+              aria-label="Colour mode"
+              aria-checked="false"
+              data-theme-toggle
+            />
+            <span className="theme-toggle__track" aria-hidden="true">
+              <span className="theme-toggle__icon theme-toggle__icon--light">{"\u2600"}</span>
+              <span className="theme-toggle__icon theme-toggle__icon--dark">{"\u263E"}</span>
+              <span className="theme-toggle__thumb" />
+            </span>
+          </label>
         </header>
         {children}
       </div>
