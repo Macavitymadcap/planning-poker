@@ -259,6 +259,13 @@ export const RoomFragment = ({ baseUrl, currentParticipant, state }: RoomProps) 
             </ol>
           </section>
         ) : null}
+        {currentParticipant.isHost ? (
+          <div className="session-actions">
+            <a className="button" data-variant="outline" href="/">
+              Start new session
+            </a>
+          </div>
+        ) : null}
       </Card>
     </section>
   );

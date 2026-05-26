@@ -616,6 +616,12 @@ input {
   margin-top: 24px;
 }
 
+.session-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
 .history-list strong {
   color: var(--accent-strong);
 }
@@ -742,6 +748,7 @@ input {
 
   .host-controls,
   .host-controls form,
+  .session-actions,
   .stats-list {
     display: grid;
     grid-template-columns: 1fr;
