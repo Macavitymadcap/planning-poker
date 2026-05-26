@@ -8,8 +8,10 @@ test("creates, joins, votes, reveals, and celebrates consensus", async ({ browse
 
   await hostPage.goto("/");
   await hostPage.getByLabel("Your name").fill("Ada");
+  await hostPage.getByLabel("First ticket").fill("PP-123");
   await hostPage.getByRole("button", { name: "Create session" }).click();
   await expect(hostPage.getByRole("heading", { name: "Round 1" })).toBeVisible();
+  await expect(hostPage.getByText("PP-123")).toBeVisible();
 
   await guestPage.goto(hostPage.url());
   await guestPage.getByLabel("Your name").fill("Grace");
@@ -22,6 +24,20 @@ test("creates, joins, votes, reveals, and celebrates consensus", async ({ browse
   await expect(hostPage.getByText("Consensus: 5")).toBeVisible();
   await expect(hostPage.locator("#session-room")).toHaveAttribute("data-consensus", "true");
   await expect(hostPage.locator(".confetti-burst")).toBeVisible();
+  await expect(hostPage.locator(".confetti-burst span")).toHaveCount(42);
+  await expect(hostPage.locator(".confetti-burst span").first()).not.toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  await expect(hostPage.getByText("Nearest Fibonacci")).toBeVisible();
+  await expect(hostPage.getByText("Average")).toBeVisible();
+
+  await hostPage.getByLabel("Next ticket").fill("PP-124");
+  await hostPage.getByRole("button", { name: "Next round" }).click();
+  await expect(hostPage.getByRole("heading", { name: "Round 2" })).toBeVisible();
+  await expect(hostPage.getByText("PP-124")).toBeVisible();
+  await expect(hostPage.getByRole("heading", { name: "History" })).toBeVisible();
+  await expect(hostPage.getByText("PP-123").last()).toBeVisible();
 
   await host.close();
   await guest.close();

@@ -33,6 +33,12 @@ const cleanDisplayName = (value: FormDataEntryValue | null) => {
   return displayName.slice(0, 40);
 };
 
+const cleanTicketLabel = (value: FormDataEntryValue | null) => {
+  const ticketLabel = String(value ?? "").trim();
+  if (ticketLabel.length === 0) return null;
+  return ticketLabel.slice(0, 32);
+};
+
 export const createApp = ({
   baseUrl,
   broker = new SessionEventBroker(),
@@ -65,11 +71,28 @@ export const createApp = ({
     return new Response("Build client assets with `bun run build`.", { status: 503 });
   });
 
+  app.get(
+    "/assets/htmx.js",
+    () =>
+      new Response(Bun.file("node_modules/htmx.org/dist/htmx.min.js"), {
+        headers: { "content-type": "text/javascript; charset=utf-8" },
+      }),
+  );
+
+  app.get(
+    "/assets/htmx-sse.js",
+    () =>
+      new Response(Bun.file("node_modules/htmx.org/dist/ext/sse.js"), {
+        headers: { "content-type": "text/javascript; charset=utf-8" },
+      }),
+  );
+
   app.get("/", (context) => context.html(renderPage(<HomePage />)));
 
   app.post("/sessions", async (context) => {
     const values = await FormValues.from(context);
     const displayName = cleanDisplayName(values.string("displayName"));
+    const ticketLabel = cleanTicketLabel(values.string("ticketLabel"));
     if (!displayName) return context.html(renderPage(<HomePage />), 422);
 
     let created = null;
@@ -80,6 +103,7 @@ export const createApp = ({
           code,
           hostDisplayName: displayName,
           hostId: createParticipantId(),
+          ticketLabel,
         });
         break;
       } catch (error) {
@@ -152,7 +176,10 @@ export const createApp = ({
     const participant = await currentParticipantFromCookie(context, repository, code);
     if (!participant?.isHost) return context.redirect(`/sessions/${code}`);
 
-    await repository.resetRound(code);
+    const values = await FormValues.from(context);
+    const ticketLabel = cleanTicketLabel(values.string("ticketLabel"));
+
+    await repository.resetRound({ sessionCode: code, ticketLabel });
     await publishRoom(context, repository, broker, code, baseUrl);
     return renderRoomResponse(context, repository, code, participant, baseUrl);
   });

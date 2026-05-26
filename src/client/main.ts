@@ -1,4 +1,3 @@
-import "htmx.org";
 import "@macavitymadcap/hyper-dank-ui/styles.css";
 import "./styles.css";
 
@@ -106,26 +105,14 @@ const celebrateIfNeeded = (root: ParentNode = document) => {
   for (let index = 0; index < 42; index += 1) {
     const piece = document.createElement("span");
     piece.style.setProperty("--x", `${Math.random() * 100}%`);
+    piece.style.setProperty("--hue", `${Math.floor(Math.random() * 360)}`);
     piece.style.setProperty("--delay", `${Math.random() * 0.28}s`);
     piece.style.setProperty("--spin", `${Math.random() * 720 - 360}deg`);
+    piece.style.setProperty("--drift", `${Math.random() * 56 - 28}px`);
     burst.append(piece);
   }
   document.body.append(burst);
   setTimeout(() => burst.remove(), 2600);
-};
-
-const connectSessionEvents = () => {
-  const shell = document.querySelector<HTMLElement>("[data-session-code]");
-  const sessionCode = shell?.dataset.sessionCode;
-  if (!sessionCode) return;
-
-  const source = new EventSource(`/sessions/${sessionCode}/events`);
-  source.addEventListener("session", (event) => {
-    const room = document.getElementById("session-room");
-    if (!room) return;
-    room.outerHTML = (event as MessageEvent<string>).data;
-    window.requestAnimationFrame(() => celebrateIfNeeded());
-  });
 };
 
 document.addEventListener("click", (event) => {
@@ -137,6 +124,9 @@ document.body.addEventListener("htmx:afterSwap", () => {
   window.requestAnimationFrame(() => celebrateIfNeeded());
 });
 
-connectSessionEvents();
+document.body.addEventListener("htmx:sseMessage", () => {
+  window.requestAnimationFrame(() => celebrateIfNeeded());
+});
+
 connectThemeToggle();
 celebrateIfNeeded();

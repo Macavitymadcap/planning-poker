@@ -1,6 +1,14 @@
 import { Database } from "bun:sqlite";
 import type { VoteCard } from "../domain/cards";
-import type { Participant, Session, SessionState, Vote } from "../domain/session";
+import {
+  calculateVoteStats,
+  type Participant,
+  type Round,
+  type RoundHistoryItem,
+  type Session,
+  type SessionState,
+  type Vote,
+} from "../domain/session";
 import type { PlanningPokerRepository } from "./repository";
 
 type SessionRow = {
@@ -25,6 +33,13 @@ type VoteRow = {
   card: string;
 };
 
+type RoundRow = {
+  session_code: string;
+  round: number;
+  ticket_label: string | null;
+  created_at: string;
+};
+
 const toSession = (row: SessionRow): Session => ({
   code: row.code,
   createdAt: new Date(row.created_at),
@@ -45,6 +60,13 @@ const toVote = (row: VoteRow): Vote => ({
   participantId: row.participant_id,
   round: row.round,
   sessionCode: row.session_code,
+});
+
+const toRound = (row: RoundRow): Round => ({
+  createdAt: new Date(row.created_at),
+  round: row.round,
+  sessionCode: row.session_code,
+  ticketLabel: row.ticket_label,
 });
 
 export class SqlitePlanningPokerRepository implements PlanningPokerRepository {
@@ -83,10 +105,26 @@ export class SqlitePlanningPokerRepository implements PlanningPokerRepository {
         card TEXT NOT NULL,
         PRIMARY KEY (session_code, round, participant_id)
       );
+
+      CREATE TABLE IF NOT EXISTS rounds (
+        session_code TEXT NOT NULL REFERENCES sessions(code) ON DELETE CASCADE,
+        round INTEGER NOT NULL,
+        ticket_label TEXT,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (session_code, round)
+      );
+
+      INSERT OR IGNORE INTO rounds (session_code, round, ticket_label, created_at)
+      SELECT code, current_round, NULL, created_at FROM sessions;
     `);
   }
 
-  async createSession(input: { code: string; hostDisplayName: string; hostId: string }) {
+  async createSession(input: {
+    code: string;
+    hostDisplayName: string;
+    hostId: string;
+    ticketLabel?: string | null;
+  }) {
     const now = new Date().toISOString();
     const transaction = this.#database.transaction(() => {
       this.#database
@@ -100,6 +138,12 @@ export class SqlitePlanningPokerRepository implements PlanningPokerRepository {
            VALUES (?, ?, ?, 1, ?)`,
         )
         .run(input.hostId, input.code, input.hostDisplayName, now);
+      this.#database
+        .query(
+          `INSERT INTO rounds (session_code, round, ticket_label, created_at)
+           VALUES (?, 1, ?, ?)`,
+        )
+        .run(input.code, input.ticketLabel ?? null, now);
     });
     transaction();
 
@@ -136,6 +180,19 @@ export class SqlitePlanningPokerRepository implements PlanningPokerRepository {
     if (!sessionRow) return null;
 
     const session = toSession(sessionRow);
+    const currentRoundRow = this.#database
+      .query<RoundRow, [string, number]>(
+        "SELECT * FROM rounds WHERE session_code = ? AND round = ?",
+      )
+      .get(sessionCode, session.currentRound);
+    const currentRound =
+      currentRoundRow ??
+      ({
+        created_at: sessionRow.created_at,
+        round: session.currentRound,
+        session_code: session.code,
+        ticket_label: null,
+      } satisfies RoundRow);
     const participants = this.#database
       .query<ParticipantRow, [string]>(
         "SELECT * FROM participants WHERE session_code = ? ORDER BY is_host DESC, display_name ASC",
@@ -145,8 +202,11 @@ export class SqlitePlanningPokerRepository implements PlanningPokerRepository {
       .query<VoteRow, [string, number]>("SELECT * FROM votes WHERE session_code = ? AND round = ?")
       .all(sessionCode, session.currentRound)
       .map(toVote);
+    const history = this.#history(sessionCode, session.currentRound);
 
     return {
+      currentRound: toRound(currentRound),
+      history,
       participants: participants.map((row) => {
         const participant = toParticipant(row);
         return {
@@ -205,10 +265,50 @@ export class SqlitePlanningPokerRepository implements PlanningPokerRepository {
     return true;
   }
 
-  async resetRound(sessionCode: string) {
-    const result = this.#database
-      .query("UPDATE sessions SET current_round = current_round + 1, revealed = 0 WHERE code = ?")
-      .run(sessionCode);
-    return result.changes > 0;
+  async resetRound(input: { sessionCode: string; ticketLabel?: string | null }) {
+    const now = new Date().toISOString();
+    const transaction = this.#database.transaction(() => {
+      const result = this.#database
+        .query("UPDATE sessions SET current_round = current_round + 1, revealed = 0 WHERE code = ?")
+        .run(input.sessionCode);
+      if (result.changes === 0) return false;
+
+      const session = this.#database
+        .query<SessionRow, [string]>("SELECT * FROM sessions WHERE code = ?")
+        .get(input.sessionCode);
+      if (!session) return false;
+
+      this.#database
+        .query(
+          `INSERT OR REPLACE INTO rounds (session_code, round, ticket_label, created_at)
+           VALUES (?, ?, ?, ?)`,
+        )
+        .run(input.sessionCode, session.current_round, input.ticketLabel ?? null, now);
+      return true;
+    });
+    return transaction();
+  }
+
+  #history(sessionCode: string, currentRound: number): RoundHistoryItem[] {
+    return this.#database
+      .query<RoundRow, [string, number]>(
+        `SELECT * FROM rounds
+         WHERE session_code = ? AND round < ?
+         ORDER BY round DESC`,
+      )
+      .all(sessionCode, currentRound)
+      .map((roundRow) => {
+        const votes = this.#database
+          .query<VoteRow, [string, number]>(
+            "SELECT * FROM votes WHERE session_code = ? AND round = ?",
+          )
+          .all(sessionCode, roundRow.round)
+          .map(toVote);
+
+        return {
+          round: toRound(roundRow),
+          stats: calculateVoteStats(votes.map((vote) => vote.card)),
+        };
+      });
   }
 }

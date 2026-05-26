@@ -36,6 +36,8 @@ export const Layout = ({ children, title = "Planning Poker" }: LayoutProps) => (
       <title>{title}</title>
       <script>{raw(themeBootstrap)}</script>
       <link rel="stylesheet" href="/assets/main.css" />
+      <script defer src="/assets/htmx.js" />
+      <script defer src="/assets/htmx-sse.js" />
       <script type="module" src="/assets/main.js" />
     </head>
     <body>
