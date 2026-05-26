@@ -36,3 +36,7 @@ Use `bun run db:migrate` as the pre-deploy command, `bun run start` as the start
 ## Git flow
 
 This project uses `pp-*` issue and branch identifiers. The MVP branch is `pp-0001`.
+
+## Releases
+
+Merges to `main` run Release Please. It creates or updates a release PR from conventional commits, and merging that release PR publishes the GitHub release and updates package metadata.

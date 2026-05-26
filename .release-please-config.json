@@ -1,0 +1,19 @@
+{
+  "packages": {
+    ".": {
+      "package-name": "planning-poker",
+      "release-type": "node",
+      "changelog-sections": [
+        { "type": "feat", "section": "Features" },
+        { "type": "fix", "section": "Bug Fixes" },
+        { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Refactoring" },
+        { "type": "docs", "section": "Documentation" },
+        { "type": "test", "section": "Tests" },
+        { "type": "build", "section": "Build" },
+        { "type": "ci", "section": "CI" },
+        { "type": "chore", "section": "Chores" }
+      ]
+    }
+  }
+}
