@@ -29,6 +29,11 @@ try {
     await page.getByLabel("First ticket").fill("PP-123");
     await page.getByRole("button", { name: "Create session" }).click();
     await page.screenshot({ fullPage: true, path: `${outputDir}/${viewport.name}-room.png` });
+    if (viewport.name === "desktop") {
+      await page.getByRole("button", { exact: true, name: "5" }).hover();
+      await page.waitForTimeout(120);
+      await page.screenshot({ fullPage: true, path: `${outputDir}/desktop-card-hover.png` });
+    }
 
     await guestPage.goto(page.url());
     await guestPage.getByLabel("Your name").fill("Grace");

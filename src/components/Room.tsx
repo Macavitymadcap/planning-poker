@@ -63,7 +63,10 @@ export const RoomDocument = (props: RoomProps) => (
   <main
     className="room-shell"
     data-session-code={props.state.session.code}
+    hx-swap="outerHTML"
+    hx-target="#session-room"
     hx-ext="sse"
+    sse-swap="session"
     sse-connect={`/sessions/${props.state.session.code}/events`}
   >
     <RoomFragment {...props} />
@@ -85,9 +88,6 @@ export const RoomFragment = ({ baseUrl, currentParticipant, state }: RoomProps) 
       data-consensus={consensus ? "true" : "false"}
       data-round={state.session.currentRound}
       data-session-code={state.session.code}
-      hx-swap="outerHTML"
-      hx-target="#session-room"
-      sse-swap="session"
     >
       <Card as="section" className="room-main">
         <div className="room-header">
