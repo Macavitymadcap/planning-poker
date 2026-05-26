@@ -48,6 +48,7 @@ try {
     await guestPage.getByRole("button", { name: "5" }).click();
     await page.getByRole("button", { name: "Reveal votes" }).click();
     await page.locator(".confetti-burst").waitFor();
+    await page.waitForTimeout(500);
     await page.screenshot({
       fullPage: true,
       path: `${outputDir}/${viewport.name}-celebration.png`,
