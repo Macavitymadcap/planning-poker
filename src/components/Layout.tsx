@@ -65,6 +65,12 @@ export const Layout = ({ children, title = "Planning Poker" }: LayoutProps) => (
           </label>
         </header>
         {children}
+        <footer className="site-footer">
+          Built with{" "}
+          <a href="https://macavitymadcap.github.io/hyper-dank/" rel="noreferrer">
+            Hyper-Dank
+          </a>
+        </footer>
       </div>
     </body>
   </html>
