@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "vite build && tsc --noEmit",
+    "build:assets": "vite build",
     "check": "biome check .",
     "db:migrate": "bun src/scripts/migrate.ts",
-    "dev": "bun --hot src/index.ts",
+    "dev": "bun run build:assets && bun --hot src/index.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",

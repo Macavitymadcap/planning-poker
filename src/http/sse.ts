@@ -1,14 +1,18 @@
 export type SessionEvent = {
+  clientId: string;
   html: string;
   sessionCode: string;
 };
 
 export class SessionEventBroker {
-  readonly #clients = new Map<string, Set<ReadableStreamDefaultController<Uint8Array>>>();
+  readonly #clients = new Map<
+    string,
+    Map<string, Set<ReadableStreamDefaultController<Uint8Array>>>
+  >();
   readonly #encoder = new TextEncoder();
 
   publish(event: SessionEvent) {
-    const clients = this.#clients.get(event.sessionCode);
+    const clients = this.#clients.get(event.sessionCode)?.get(event.clientId);
     if (!clients) return;
 
     const payload = this.#encoder.encode(`event: session\n${this.#dataLines(event.html)}\n\n`);
@@ -21,19 +25,28 @@ export class SessionEventBroker {
     }
   }
 
-  stream(sessionCode: string) {
+  stream(sessionCode: string, clientId: string) {
+    let activeController: ReadableStreamDefaultController<Uint8Array> | null = null;
+
     return new ReadableStream<Uint8Array>({
       start: (controller) => {
-        const clients = this.#clients.get(sessionCode) ?? new Set();
+        activeController = controller;
+        const sessionClients = this.#clients.get(sessionCode) ?? new Map();
+        const clients = sessionClients.get(clientId) ?? new Set();
         clients.add(controller);
-        this.#clients.set(sessionCode, clients);
+        sessionClients.set(clientId, clients);
+        this.#clients.set(sessionCode, sessionClients);
         controller.enqueue(this.#encoder.encode(": connected\n\n"));
       },
       cancel: () => {
-        const clients = this.#clients.get(sessionCode);
+        const clients = this.#clients.get(sessionCode)?.get(clientId);
         if (!clients) return;
-        for (const client of clients) clients.delete(client);
-        if (clients.size === 0) this.#clients.delete(sessionCode);
+        if (activeController) clients.delete(activeController);
+        if (clients.size > 0) return;
+
+        const sessionClients = this.#clients.get(sessionCode);
+        sessionClients?.delete(clientId);
+        if (sessionClients?.size === 0) this.#clients.delete(sessionCode);
       },
     });
   }
