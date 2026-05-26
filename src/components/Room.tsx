@@ -62,14 +62,16 @@ export const RoomFragment = ({ baseUrl, currentParticipant, state }: RoomProps) 
             Share link
             <input id="share-link" value={shareUrl} readOnly />
           </label>
-          <button
-            className="icon-button"
-            type="button"
-            data-copy-target="share-link"
-            aria-label="Copy share link"
-          >
-            Copy
-          </button>
+          <span className="share-copy-action" data-copy-target="share-link">
+            <Button
+              ariaLabel="Copy share link"
+              className="share-copy-button"
+              type="button"
+              variant="outline"
+            >
+              Copy
+            </Button>
+          </span>
         </div>
 
         {!state.session.revealed ? (
