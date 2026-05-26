@@ -3,6 +3,70 @@ import "@macavitymadcap/hyper-dank-ui/styles.css";
 import "./styles.css";
 
 let celebratedRoundKey: string | null = null;
+const themeStorageKey = "planning-poker-theme";
+
+const isTheme = (value: string | null | undefined): value is "light" | "dark" =>
+  value === "light" || value === "dark";
+
+const getStoredTheme = () => {
+  try {
+    return window.localStorage.getItem(themeStorageKey);
+  } catch {
+    return null;
+  }
+};
+
+const storeTheme = (theme: "light" | "dark") => {
+  try {
+    window.localStorage.setItem(themeStorageKey, theme);
+  } catch {}
+};
+
+const getPreferredTheme = (): "light" | "dark" => {
+  const currentTheme = document.documentElement.dataset.theme;
+  if (isTheme(currentTheme)) return currentTheme;
+
+  const storedTheme = getStoredTheme();
+  if (isTheme(storedTheme)) return storedTheme;
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+};
+
+const syncThemeToggle = (theme: "light" | "dark") => {
+  const toggle = document.querySelector("[data-theme-toggle]");
+  if (!(toggle instanceof HTMLInputElement)) return;
+
+  const isDark = theme === "dark";
+  toggle.checked = isDark;
+  toggle.setAttribute("aria-checked", String(isDark));
+};
+
+const applyTheme = (theme: "light" | "dark") => {
+  document.documentElement.dataset.theme = theme;
+  syncThemeToggle(theme);
+};
+
+const connectThemeToggle = () => {
+  const toggle = document.querySelector("[data-theme-toggle]");
+  const currentTheme = getPreferredTheme();
+  applyTheme(currentTheme);
+
+  if (!(toggle instanceof HTMLInputElement)) return;
+
+  toggle.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    toggle.checked = !toggle.checked;
+    toggle.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  toggle.addEventListener("change", () => {
+    const nextTheme = toggle.checked ? "dark" : "light";
+    storeTheme(nextTheme);
+    applyTheme(nextTheme);
+  });
+};
 
 const copyShareLink = async (button: HTMLButtonElement) => {
   const targetId = button.dataset.copyTarget;
@@ -69,4 +133,5 @@ document.body.addEventListener("htmx:afterSwap", () => {
 });
 
 connectSessionEvents();
+connectThemeToggle();
 celebrateIfNeeded();

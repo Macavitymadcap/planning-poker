@@ -52,3 +52,22 @@ test("question mark card is keyboard accessible and prevents consensus", async (
 
   await guest.close();
 });
+
+test("theme switch persists the selected colour mode", async ({ page }) => {
+  await page.goto("/");
+
+  const toggle = page.getByRole("switch", { name: "Colour mode" });
+  const initialTheme = await page.locator("html").getAttribute("data-theme");
+
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme",
+    initialTheme === "dark" ? "light" : "dark",
+  );
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-theme",
+    initialTheme === "dark" ? "light" : "dark",
+  );
+});
