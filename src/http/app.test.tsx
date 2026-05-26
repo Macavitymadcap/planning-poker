@@ -99,6 +99,40 @@ describe("planning poker routes", () => {
     expect(html).toContain("Voting");
   });
 
+  test("tracks ticket labels, result statistics, and history", async () => {
+    const { app } = await createHarness();
+    const created = await app.fetch(
+      postForm("http://example.test/sessions", { displayName: "Ada", ticketLabel: "PP-123" }),
+    );
+    const location = created.headers.get("location") ?? "";
+    const hostCookie = cookieHeader(created);
+    const joined = await app.fetch(
+      postForm(`http://example.test${location}/join`, { displayName: "Grace" }),
+    );
+    const guestCookie = cookieHeader(joined);
+
+    await app.fetch(postForm(`http://example.test${location}/votes`, { card: "5" }, hostCookie));
+    await app.fetch(postForm(`http://example.test${location}/votes`, { card: "8" }, guestCookie));
+    await app.fetch(postForm(`http://example.test${location}/reveal`, {}, hostCookie));
+    const revealed = await app.fetch(
+      new Request(`http://example.test${location}`, { headers: { cookie: hostCookie } }),
+    );
+    const revealedHtml = await revealed.text();
+
+    expect(revealedHtml).toContain("PP-123");
+    expect(revealedHtml).toContain("6.5");
+    expect(revealedHtml).toContain("5 or 8");
+
+    const reset = await app.fetch(
+      postForm(`http://example.test${location}/reset`, { ticketLabel: "PP-124" }, hostCookie),
+    );
+    const resetHtml = await reset.text();
+
+    expect(resetHtml).toContain("PP-124");
+    expect(resetHtml).toContain("History");
+    expect(resetHtml).toContain("PP-123");
+  });
+
   test("opens an SSE stream", async () => {
     const { app } = await createHarness();
     const created = await app.fetch(

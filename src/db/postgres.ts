@@ -1,6 +1,14 @@
 import pg from "pg";
 import type { VoteCard } from "../domain/cards";
-import type { Participant, Session, SessionState, Vote } from "../domain/session";
+import {
+  calculateVoteStats,
+  type Participant,
+  type Round,
+  type RoundHistoryItem,
+  type Session,
+  type SessionState,
+  type Vote,
+} from "../domain/session";
 import type { PlanningPokerRepository } from "./repository";
 
 const { Pool } = pg;
@@ -27,6 +35,13 @@ type VoteRow = {
   card: string;
 };
 
+type RoundRow = {
+  session_code: string;
+  round: number;
+  ticket_label: string | null;
+  created_at: Date | string;
+};
+
 const toDate = (value: Date | string) => (value instanceof Date ? value : new Date(value));
 
 const toSession = (row: SessionRow): Session => ({
@@ -49,6 +64,13 @@ const toVote = (row: VoteRow): Vote => ({
   participantId: row.participant_id,
   round: row.round,
   sessionCode: row.session_code,
+});
+
+const toRound = (row: RoundRow): Round => ({
+  createdAt: toDate(row.created_at),
+  round: row.round,
+  sessionCode: row.session_code,
+  ticketLabel: row.ticket_label,
 });
 
 export class PostgresPlanningPokerRepository implements PlanningPokerRepository {
@@ -86,10 +108,27 @@ export class PostgresPlanningPokerRepository implements PlanningPokerRepository 
         card TEXT NOT NULL,
         PRIMARY KEY (session_code, round, participant_id)
       );
+
+      CREATE TABLE IF NOT EXISTS rounds (
+        session_code TEXT NOT NULL REFERENCES sessions(code) ON DELETE CASCADE,
+        round INTEGER NOT NULL,
+        ticket_label TEXT,
+        created_at TIMESTAMPTZ NOT NULL,
+        PRIMARY KEY (session_code, round)
+      );
+
+      INSERT INTO rounds (session_code, round, ticket_label, created_at)
+      SELECT code, current_round, NULL, created_at FROM sessions
+      ON CONFLICT (session_code, round) DO NOTHING;
     `);
   }
 
-  async createSession(input: { code: string; hostDisplayName: string; hostId: string }) {
+  async createSession(input: {
+    code: string;
+    hostDisplayName: string;
+    hostId: string;
+    ticketLabel?: string | null;
+  }) {
     const client = await this.#pool.connect();
     try {
       const now = new Date();
@@ -102,6 +141,11 @@ export class PostgresPlanningPokerRepository implements PlanningPokerRepository 
         `INSERT INTO participants (id, session_code, display_name, is_host, last_seen_at)
          VALUES ($1, $2, $3, true, $4)`,
         [input.hostId, input.code, input.hostDisplayName, now],
+      );
+      await client.query(
+        `INSERT INTO rounds (session_code, round, ticket_label, created_at)
+         VALUES ($1, 1, $2, $3)`,
+        [input.code, input.ticketLabel ?? null, now],
       );
       await client.query("COMMIT");
       return {
@@ -144,6 +188,18 @@ export class PostgresPlanningPokerRepository implements PlanningPokerRepository 
     if (!sessionRow) return null;
 
     const session = toSession(sessionRow);
+    const currentRoundResult = await this.#pool.query<RoundRow>(
+      "SELECT * FROM rounds WHERE session_code = $1 AND round = $2",
+      [sessionCode, session.currentRound],
+    );
+    const currentRound = toRound(
+      currentRoundResult.rows[0] ?? {
+        created_at: sessionRow.created_at,
+        round: session.currentRound,
+        session_code: session.code,
+        ticket_label: null,
+      },
+    );
     const participantsResult = await this.#pool.query<ParticipantRow>(
       "SELECT * FROM participants WHERE session_code = $1 ORDER BY is_host DESC, display_name ASC",
       [sessionCode],
@@ -153,8 +209,11 @@ export class PostgresPlanningPokerRepository implements PlanningPokerRepository 
       [sessionCode, session.currentRound],
     );
     const votes = votesResult.rows.map(toVote);
+    const history = await this.#history(sessionCode, session.currentRound);
 
     return {
+      currentRound,
+      history,
       participants: participantsResult.rows.map((row) => {
         const participant = toParticipant(row);
         return {
@@ -211,11 +270,61 @@ export class PostgresPlanningPokerRepository implements PlanningPokerRepository 
     return true;
   }
 
-  async resetRound(sessionCode: string) {
-    const result = await this.#pool.query(
-      "UPDATE sessions SET current_round = current_round + 1, revealed = false WHERE code = $1",
-      [sessionCode],
+  async resetRound(input: { sessionCode: string; ticketLabel?: string | null }) {
+    const client = await this.#pool.connect();
+    try {
+      await client.query("BEGIN");
+      const result = await client.query<SessionRow>(
+        `UPDATE sessions
+         SET current_round = current_round + 1, revealed = false
+         WHERE code = $1
+         RETURNING *`,
+        [input.sessionCode],
+      );
+      const session = result.rows[0];
+      if (!session) {
+        await client.query("ROLLBACK");
+        return false;
+      }
+
+      await client.query(
+        `INSERT INTO rounds (session_code, round, ticket_label, created_at)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (session_code, round)
+         DO UPDATE SET ticket_label = excluded.ticket_label`,
+        [input.sessionCode, session.current_round, input.ticketLabel ?? null, new Date()],
+      );
+      await client.query("COMMIT");
+      return true;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async #history(sessionCode: string, currentRound: number): Promise<RoundHistoryItem[]> {
+    const roundsResult = await this.#pool.query<RoundRow>(
+      `SELECT * FROM rounds
+       WHERE session_code = $1 AND round < $2
+       ORDER BY round DESC`,
+      [sessionCode, currentRound],
     );
-    return (result.rowCount ?? 0) > 0;
+
+    const history: RoundHistoryItem[] = [];
+    for (const round of roundsResult.rows.map(toRound)) {
+      const votesResult = await this.#pool.query<VoteRow>(
+        "SELECT * FROM votes WHERE session_code = $1 AND round = $2",
+        [sessionCode, round.round],
+      );
+      const votes = votesResult.rows.map(toVote);
+      history.push({
+        round,
+        stats: calculateVoteStats(votes.map((vote) => vote.card)),
+      });
+    }
+
+    return history;
   }
 }

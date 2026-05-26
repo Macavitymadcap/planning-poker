@@ -18,6 +18,10 @@ export const HomePage = () => (
           Your name
           <input name="displayName" required maxLength={40} placeholder="Ada" />
         </label>
+        <label>
+          First ticket
+          <input name="ticketLabel" maxLength={32} placeholder="PP-123" />
+        </label>
         <Button type="submit">Create session</Button>
       </HxForm>
     </Card>

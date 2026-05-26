@@ -6,6 +6,7 @@ export interface PlanningPokerRepository {
     code: string;
     hostDisplayName: string;
     hostId: string;
+    ticketLabel?: string | null;
   }): Promise<{ host: Participant; session: Session }>;
   findParticipant(sessionCode: string, participantId: string): Promise<Participant | null>;
   getState(sessionCode: string): Promise<SessionState | null>;
@@ -20,7 +21,7 @@ export interface PlanningPokerRepository {
     participantId: string;
     sessionCode: string;
   }): Promise<boolean>;
-  resetRound(sessionCode: string): Promise<boolean>;
+  resetRound(input: { sessionCode: string; ticketLabel?: string | null }): Promise<boolean>;
   reveal(sessionCode: string, participantId: string): Promise<boolean>;
 }
 

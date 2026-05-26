@@ -18,13 +18,34 @@ try {
     { height: 900, name: "desktop", width: 1280 },
     { height: 915, name: "mobile", width: 412 },
   ]) {
-    const page = await browser.newPage({ viewport });
+    const host = await browser.newContext({ viewport });
+    const guest = await browser.newContext({ viewport });
+    const page = await host.newPage();
+    const guestPage = await guest.newPage();
+
     await page.goto(`http://127.0.0.1:${port}/`);
     await page.screenshot({ fullPage: true, path: `${outputDir}/${viewport.name}-home.png` });
     await page.getByLabel("Your name").fill("Ada");
+    await page.getByLabel("First ticket").fill("PP-123");
     await page.getByRole("button", { name: "Create session" }).click();
     await page.screenshot({ fullPage: true, path: `${outputDir}/${viewport.name}-room.png` });
-    await page.close();
+
+    await guestPage.goto(page.url());
+    await guestPage.getByLabel("Your name").fill("Grace");
+    await guestPage.getByRole("button", { name: "Join session" }).click();
+    await page.getByRole("button", { name: "5" }).click();
+    await guestPage.getByRole("button", { name: "8" }).click();
+    await page.getByRole("button", { name: "Reveal votes" }).click();
+    await page.getByText("Nearest Fibonacci").waitFor();
+    await page.screenshot({ fullPage: true, path: `${outputDir}/${viewport.name}-revealed.png` });
+
+    await page.getByLabel("Next ticket").fill("PP-124");
+    await page.getByRole("button", { name: "Next round" }).click();
+    await page.getByRole("heading", { name: "History" }).waitFor();
+    await page.screenshot({ fullPage: true, path: `${outputDir}/${viewport.name}-history.png` });
+
+    await host.close();
+    await guest.close();
   }
   console.log(`Screenshots written to ${outputDir}`);
 } finally {

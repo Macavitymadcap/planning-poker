@@ -428,6 +428,19 @@ input {
   min-height: 72px;
 }
 
+.ticket-pill {
+  display: inline-flex;
+  width: fit-content;
+  margin: 10px 0 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line-soft));
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-raised));
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
 .vote-panel,
 .results-panel {
   display: grid;
@@ -484,8 +497,41 @@ input {
   font-style: italic;
 }
 
+.muted-copy {
+  margin: 0;
+  color: var(--muted);
+}
+
+.stats-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.stats-list div {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--surface-raised) 78%, var(--surface));
+}
+
+.stats-list dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.stats-list dd {
+  margin: 4px 0 0;
+  color: var(--accent-strong);
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
 .results-grid,
-.participant-list {
+.participant-list,
+.history-list {
   display: grid;
   gap: 12px;
   margin: 0;
@@ -494,7 +540,8 @@ input {
 }
 
 .result-row,
-.participant-list li {
+.participant-list li,
+.history-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -505,10 +552,21 @@ input {
   background: color-mix(in srgb, var(--surface-raised) 76%, var(--surface));
 }
 
-.participant-list small {
+.participant-list small,
+.history-list small {
   display: block;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.history-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.history-list strong {
+  color: var(--accent-strong);
 }
 
 .mini-card {
@@ -538,6 +596,17 @@ input {
   justify-content: flex-end;
 }
 
+.host-controls form {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.next-ticket-field {
+  width: min(220px, 100%);
+}
+
 .confetti-burst {
   position: fixed;
   inset: 0;
@@ -550,11 +619,12 @@ input {
   position: absolute;
   top: -18px;
   left: var(--x);
-  width: 10px;
-  height: 18px;
-  border-radius: 2px;
-  background: hsl(calc(120 + var(--x, 40) * 2), 82%, 58%);
-  animation: confetti-fall 2.2s ease-in var(--delay) forwards;
+  width: 12px;
+  height: 20px;
+  border-radius: 3px;
+  background: hsl(var(--hue), 88%, 58%);
+  box-shadow: 0 0 18px color-mix(in srgb, hsl(var(--hue), 88%, 58%) 48%, transparent);
+  animation: confetti-fall 2.2s cubic-bezier(0.16, 0.84, 0.3, 1) var(--delay) forwards;
   transform: rotate(var(--spin));
 }
 
@@ -570,7 +640,7 @@ input {
   }
 
   to {
-    transform: translate3d(20px, 108vh, 0) rotate(var(--spin));
+    transform: translate3d(var(--drift), 108vh, 0) rotate(var(--spin));
     opacity: 0.95;
   }
 }
@@ -600,6 +670,17 @@ input {
   .room-header,
   .share-row {
     align-items: stretch;
+  }
+
+  .host-controls,
+  .host-controls form,
+  .stats-list {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .next-ticket-field {
+    width: 100%;
   }
 
   .room-main,

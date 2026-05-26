@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { parseVoteCard } from "./cards";
-import { hasConsensus, type Participant, type SessionState } from "./session";
+import { calculateVoteStats, hasConsensus, type Participant, type SessionState } from "./session";
 
 const participant = (id: string): Participant => ({
   displayName: `Person ${id}`,
@@ -11,6 +11,13 @@ const participant = (id: string): Participant => ({
 });
 
 const state = (cards: Array<0 | 1 | 2 | 3 | 5 | 8 | 13 | 21 | "unknown" | null>): SessionState => ({
+  currentRound: {
+    createdAt: new Date("2026-05-26T10:00:00Z"),
+    round: 1,
+    sessionCode: "ABC123",
+    ticketLabel: "PP-123",
+  },
+  history: [],
   participants: cards.map((card, index) => {
     const id = String.fromCharCode(97 + index);
     return {
@@ -62,5 +69,24 @@ describe("consensus", () => {
     const hiddenState = state([3, 3]);
     hiddenState.session.revealed = false;
     expect(hasConsensus(hiddenState)).toBe(false);
+  });
+});
+
+describe("vote stats", () => {
+  test("calculates average, median, and nearest fibonacci from numeric votes", () => {
+    expect(calculateVoteStats([3, 5, 8])).toEqual({
+      average: 5.333333333333333,
+      median: 5,
+      nearest: [5],
+      numericVotes: [3, 5, 8],
+    });
+  });
+
+  test("suggests both fibonacci cards near the midpoint", () => {
+    expect(calculateVoteStats([5, 8])?.nearest).toEqual([5, 8]);
+  });
+
+  test("ignores unknown cards in numeric stats", () => {
+    expect(calculateVoteStats([5, "unknown", 8])?.numericVotes).toEqual([5, 8]);
   });
 });
