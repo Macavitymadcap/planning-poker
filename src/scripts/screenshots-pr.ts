@@ -44,6 +44,15 @@ try {
     await page.getByRole("heading", { name: "History" }).waitFor();
     await page.screenshot({ fullPage: true, path: `${outputDir}/${viewport.name}-history.png` });
 
+    await page.getByRole("button", { name: "5" }).click();
+    await guestPage.getByRole("button", { name: "5" }).click();
+    await page.getByRole("button", { name: "Reveal votes" }).click();
+    await page.locator(".confetti-burst").waitFor();
+    await page.screenshot({
+      fullPage: true,
+      path: `${outputDir}/${viewport.name}-celebration.png`,
+    });
+
     await host.close();
     await guest.close();
   }
