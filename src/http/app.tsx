@@ -14,6 +14,12 @@ import type { Participant, SessionState } from "../domain/session";
 import { SessionEventBroker } from "./sse";
 
 const participantCookie = (code: string) => `pp_${code}_participant`;
+const clientEntry = "src/client/main.ts";
+
+type ViteManifestEntry = {
+  css?: string[];
+  file: string;
+};
 
 export interface AppDependencies {
   baseUrl?: string;
@@ -37,25 +43,26 @@ export const createApp = ({
   app.get("/healthz", (context) => context.text("ok"));
 
   app.get("/assets/main.css", async () => {
-    const file = Bun.file("dist/client/assets/main.css");
-    if (await file.exists()) {
-      return new Response(file, { headers: { "content-type": "text/css; charset=utf-8" } });
+    const entry = await clientManifestEntry();
+    const cssFile = entry?.css?.[0];
+    if (cssFile) {
+      return new Response(Bun.file(`dist/client/${cssFile}`), {
+        headers: { "content-type": "text/css; charset=utf-8" },
+      });
     }
-    return new Response(await Bun.file("src/client/styles.css").text(), {
-      headers: { "content-type": "text/css; charset=utf-8" },
-    });
+
+    return new Response("Build client assets with `bun run build`.", { status: 503 });
   });
 
   app.get("/assets/main.js", async () => {
-    const manifestFile = Bun.file("dist/client/.vite/manifest.json");
-    if (await manifestFile.exists()) {
-      const manifest = (await manifestFile.json()) as Record<string, { file: string }>;
-      const file = manifest["src/client/main.ts"]?.file;
-      if (file) return new Response(Bun.file(`dist/client/${file}`));
+    const entry = await clientManifestEntry();
+    if (entry) {
+      return new Response(Bun.file(`dist/client/${entry.file}`), {
+        headers: { "content-type": "text/javascript; charset=utf-8" },
+      });
     }
-    return new Response(await Bun.file("src/client/main.ts").text(), {
-      headers: { "content-type": "text/javascript; charset=utf-8" },
-    });
+
+    return new Response("Build client assets with `bun run build`.", { status: 503 });
   });
 
   app.get("/", (context) => context.html(renderPage(<HomePage />)));
@@ -152,7 +159,10 @@ export const createApp = ({
 
   app.get("/sessions/:code/events", (context) => {
     const code = context.req.param("code").toUpperCase();
-    return new Response(broker.stream(code), {
+    const participantId = getCookie(context, participantCookie(code));
+    if (!participantId) return context.text("Join the session before opening events.", 401);
+
+    return new Response(broker.stream(code, participantId), {
       headers: {
         "cache-control": "no-cache",
         connection: "keep-alive",
@@ -166,6 +176,14 @@ export const createApp = ({
 
 const renderPage = (children: unknown) =>
   `<!doctype html>${renderToString(<Layout>{children}</Layout>)}`;
+
+const clientManifestEntry = async () => {
+  const manifestFile = Bun.file("dist/client/.vite/manifest.json");
+  if (!(await manifestFile.exists())) return null;
+
+  const manifest = (await manifestFile.json()) as Record<string, ViteManifestEntry>;
+  return manifest[clientEntry] ?? null;
+};
 
 const cookieOptions = () => ({
   httpOnly: true,
@@ -211,12 +229,14 @@ const publishRoom = async (
 ) => {
   const state = await repository.getState(code);
   if (!state) return;
-  const host = state.participants.find(({ participant }) => participant.isHost)?.participant;
-  if (!host) return;
-  broker.publish({
-    html: renderToString(<RoomFragment {...roomProps(context, state, host, baseUrl)} />),
-    sessionCode: code,
-  });
+
+  for (const { participant } of state.participants) {
+    broker.publish({
+      clientId: participant.id,
+      html: renderToString(<RoomFragment {...roomProps(context, state, participant, baseUrl)} />),
+      sessionCode: code,
+    });
+  }
 };
 
 const renderRoomResponse = async (
