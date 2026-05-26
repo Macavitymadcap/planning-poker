@@ -152,6 +152,24 @@ describe("planning poker routes", () => {
     await response.body?.cancel();
   });
 
+  test("keeps SSE refreshes attached to the stable room shell", async () => {
+    const { app } = await createHarness();
+    const created = await app.fetch(
+      postForm("http://example.test/sessions", { displayName: "Ada" }),
+    );
+    const hostCookie = cookieHeader(created);
+    const location = created.headers.get("location") ?? "";
+
+    const response = await app.fetch(
+      new Request(`http://example.test${location}`, { headers: { cookie: hostCookie } }),
+    );
+    const html = await response.text();
+
+    expect(html).toContain('class="room-shell"');
+    expect(html).toContain('sse-swap="session"');
+    expect(html).toContain('hx-target="#session-room"');
+  });
+
   test("renders participant-specific SSE updates", async () => {
     const { app } = await createHarness();
     const created = await app.fetch(
@@ -173,6 +191,9 @@ describe("planning poker routes", () => {
     expect(reader).toBeDefined();
 
     await reader?.read();
+    const initial = await reader?.read();
+    expect(new TextDecoder().decode(initial?.value)).not.toContain("Reveal votes");
+
     await app.fetch(postForm(`http://example.test${location}/votes`, { card: "3" }, hostCookie));
     const update = await reader?.read();
     const html = new TextDecoder().decode(update?.value);

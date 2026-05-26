@@ -38,6 +38,8 @@ test("creates, joins, votes, reveals, and celebrates consensus", async ({ browse
   await expect(hostPage.getByText("PP-124")).toBeVisible();
   await expect(hostPage.getByRole("heading", { name: "History" })).toBeVisible();
   await expect(hostPage.getByText("PP-123").last()).toBeVisible();
+  await expect(guestPage.getByRole("heading", { name: "Round 2" })).toBeVisible();
+  await expect(guestPage.getByText("PP-124")).toBeVisible();
 
   await host.close();
   await guest.close();

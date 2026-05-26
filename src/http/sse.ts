@@ -25,7 +25,7 @@ export class SessionEventBroker {
     }
   }
 
-  stream(sessionCode: string, clientId: string) {
+  stream(sessionCode: string, clientId: string, initialHtml?: string) {
     let activeController: ReadableStreamDefaultController<Uint8Array> | null = null;
 
     return new ReadableStream<Uint8Array>({
@@ -37,6 +37,11 @@ export class SessionEventBroker {
         sessionClients.set(clientId, clients);
         this.#clients.set(sessionCode, sessionClients);
         controller.enqueue(this.#encoder.encode(": connected\n\n"));
+        if (initialHtml) {
+          controller.enqueue(
+            this.#encoder.encode(`event: session\n${this.#dataLines(initialHtml)}\n\n`),
+          );
+        }
       },
       cancel: () => {
         const clients = this.#clients.get(sessionCode)?.get(clientId);

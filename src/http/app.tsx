@@ -82,7 +82,7 @@ export const createApp = ({
   app.get(
     "/assets/htmx-sse.js",
     () =>
-      new Response(Bun.file("node_modules/htmx.org/dist/ext/sse.js"), {
+      new Response(Bun.file("node_modules/htmx-ext-sse/dist/sse.min.js"), {
         headers: { "content-type": "text/javascript; charset=utf-8" },
       }),
   );
@@ -184,12 +184,22 @@ export const createApp = ({
     return renderRoomResponse(context, repository, code, participant, baseUrl);
   });
 
-  app.get("/sessions/:code/events", (context) => {
+  app.get("/sessions/:code/events", async (context) => {
     const code = context.req.param("code").toUpperCase();
     const participantId = getCookie(context, participantCookie(code));
     if (!participantId) return context.text("Join the session before opening events.", 401);
 
-    return new Response(broker.stream(code, participantId), {
+    const state = await repository.getState(code);
+    const participant = state?.participants.find(
+      ({ participant }) => participant.id === participantId,
+    )?.participant;
+    if (!state || !participant) return context.text("Join the session before opening events.", 401);
+
+    const initialHtml = renderToString(
+      <RoomFragment {...roomProps(context, state, participant, baseUrl)} />,
+    );
+
+    return new Response(broker.stream(code, participantId, initialHtml), {
       headers: {
         "cache-control": "no-cache",
         connection: "keep-alive",

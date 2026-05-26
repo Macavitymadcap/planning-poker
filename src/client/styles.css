@@ -49,8 +49,11 @@ input {
 
 .app-frame {
   width: min(1120px, calc(100vw - 32px));
+  min-height: 100vh;
   margin: 0 auto;
-  padding: 40px 0;
+  padding: 32px 0 18px;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-toolbar {
@@ -72,8 +75,9 @@ input {
 
 .site-footer {
   display: flex;
+  gap: 0.35em;
   justify-content: center;
-  margin-top: 28px;
+  margin-top: 16px;
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
@@ -413,7 +417,8 @@ input {
 }
 
 .room-shell {
-  min-height: calc(100vh - 64px);
+  flex: 1;
+  min-height: 0;
 }
 
 .room-grid {
@@ -494,6 +499,9 @@ input {
 }
 
 .poker-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   width: 100%;
   min-height: 118px;
   border-radius: 8px;
@@ -505,10 +513,33 @@ input {
     box-shadow 140ms ease;
 }
 
+.poker-card::after {
+  position: absolute;
+  inset: -42%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    transparent 28%,
+    color-mix(in srgb, var(--accent-strong) 30%, transparent) 40%,
+    color-mix(in srgb, white 68%, transparent) 50%,
+    color-mix(in srgb, var(--warning) 28%, transparent) 60%,
+    transparent 72%
+  );
+  content: "";
+  opacity: 0;
+  transform: translate3d(-52%, -52%, 0);
+}
+
 .poker-card:hover,
 .poker-card:focus-visible {
   transform: translateY(-2px);
   box-shadow: 0 16px 34px color-mix(in srgb, #0f172a 18%, transparent);
+}
+
+.poker-card:hover::after,
+.poker-card:focus-visible::after {
+  animation: card-shimmer 840ms cubic-bezier(0.16, 0.84, 0.3, 1);
 }
 
 .unknown-card {
@@ -665,10 +696,27 @@ input {
   }
 }
 
+@keyframes card-shimmer {
+  0% {
+    transform: translate3d(-52%, -52%, 0);
+    opacity: 0;
+  }
+
+  18%,
+  72% {
+    opacity: 0.92;
+  }
+
+  100% {
+    transform: translate3d(52%, 52%, 0);
+    opacity: 0;
+  }
+}
+
 @media (max-width: 760px) {
   .app-frame {
     width: min(100vw - 20px, 680px);
-    padding: 10px 0 20px;
+    padding: 10px 0 16px;
   }
 
   .app-toolbar {
