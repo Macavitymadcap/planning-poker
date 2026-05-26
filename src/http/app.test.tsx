@@ -133,6 +133,29 @@ describe("planning poker routes", () => {
     expect(resetHtml).toContain("PP-123");
   });
 
+  test("shows the host a quick path to start a new session", async () => {
+    const { app } = await createHarness();
+    const created = await app.fetch(
+      postForm("http://example.test/sessions", { displayName: "Ada" }),
+    );
+    const location = created.headers.get("location") ?? "";
+    const hostCookie = cookieHeader(created);
+    const joined = await app.fetch(
+      postForm(`http://example.test${location}/join`, { displayName: "Grace" }),
+    );
+    const guestCookie = cookieHeader(joined);
+
+    const hostRoom = await app.fetch(
+      new Request(`http://example.test${location}`, { headers: { cookie: hostCookie } }),
+    );
+    const guestRoom = await app.fetch(
+      new Request(`http://example.test${location}`, { headers: { cookie: guestCookie } }),
+    );
+
+    expect(await hostRoom.text()).toContain("Start new session");
+    expect(await guestRoom.text()).not.toContain("Start new session");
+  });
+
   test("opens an SSE stream", async () => {
     const { app } = await createHarness();
     const created = await app.fetch(
